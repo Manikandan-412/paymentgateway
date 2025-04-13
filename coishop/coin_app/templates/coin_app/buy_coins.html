@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buy Coins</title>
+</head>
+<body>
+    <h2>Select a Coin Pack</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% for pack in coin_packs %}
+            <button type="submit" name="amount" value="{{ pack.amount }}">
+                ₹{{ pack.amount }} - {{ pack.label }}
+            </button><br><br>
+        {% endfor %}
+    </form>
+</body>
+</html>

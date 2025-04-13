@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wallet Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f8fc;
+      text-align: center;
+      padding: 60px;
+    }
+
+    .container {
+      background-color: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      display: inline-block;
+      min-width: 300px;
+    }
+
+    h1 {
+      color: #007BFF;
+    }
+
+    .wallet-info {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+
+    .balance {
+      font-size: 36px;
+      font-weight: bold;
+      color: #28a745;
+      margin: 20px 0;
+    }
+
+    a.button {
+      display: inline-block;
+      padding: 12px 20px;
+      background-color: #007BFF;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+
+    a.button:hover {
+      background-color: #0056b3;
+    }
+
+    .note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>👛 Your Wallet</h1>
+
+    <div class="wallet-info">
+      <p>User ID: <strong>{{ user_id }}</strong></p>
+      <p>Your current balance:</p>
+      <div class="balance">{{ balance }} coins</div>
+    </div>
+
+    <a href="{% url 'buy_coins' %}" class="button">Buy More Coins</a>
+
+   
+  </div>
+
+</body>
+</html>
