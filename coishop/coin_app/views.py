@@ -2,10 +2,9 @@ import uuid
 import requests
 from django.conf import settings
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from .models import Transaction, Wallet
 
-# Define the coin packs for different price ranges
+# Coin packs available for purchase
 COIN_PACKS = [
     {"amount": 200, "label": "Basic"},
     {"amount": 500, "label": "Starter"},
@@ -14,18 +13,23 @@ COIN_PACKS = [
     {"amount": 3000, "label": "Ultimate"},
 ]
 
-# View to handle the coin purchase
+# Home page – shows coin balance
+def index(request):
+    user = request.user if request.user.is_authenticated else None
+    wallet, _ = Wallet.objects.get_or_create(user=user)
+    return render(request, "index.html", {"balance": wallet.balance})
 
-
-
+# Buy coins page – handles payment creation and redirection
 def buy_coins(request):
+    user = request.user if request.user.is_authenticated else None
+    wallet, _ = Wallet.objects.get_or_create(user=user)
+
     if request.method == "POST":
         amount = int(request.POST['amount'])
-        user = request.user if request.user.is_authenticated else None
         coins = amount
-        order_id = str(uuid.uuid4())  # Unique order ID for this transaction
+        order_id = str(uuid.uuid4())  # Unique order ID
 
-        # Create a new transaction entry in the database
+        # Save transaction with status PENDING
         transaction = Transaction.objects.create(
             user=user,
             amount=amount,
@@ -33,7 +37,7 @@ def buy_coins(request):
             order_id=order_id,
         )
 
-        # Set up headers for the Cashfree API
+        # Prepare headers for Cashfree
         headers = {
             "Content-Type": "application/json",
             "x-api-version": "2022-01-01",
@@ -41,7 +45,7 @@ def buy_coins(request):
             "x-client-secret": settings.CASHFREE_SECRET_KEY
         }
 
-        # Create order data with fallback for anonymous users
+        # Create order data
         data = {
             "order_id": order_id,
             "order_amount": amount,
@@ -62,14 +66,18 @@ def buy_coins(request):
             payment_data = response.json()
             return redirect(payment_data['payment_link'])
         else:
-            return render(request, 'coin_app/payment_failed.html')
+            return render(request, 'coin_app/payment_failed.html', {"message": "Payment gateway error."})
 
-    return render(request, 'coin_app/buy_coins.html', {'coin_packs': COIN_PACKS})
+    # Show buy_coins.html with current balance and coin packs
+    return render(request, 'coin_app/buy_coins.html', {
+        'coin_packs': COIN_PACKS,
+        'balance': wallet.balance
+    })
 
+# Verify the payment after redirect from Cashfree
 def verify_payment(request):
-    order_id = request.GET.get("order_id")  # Get the order ID from the query string
+    order_id = request.GET.get("order_id")
 
-    # Set up headers for the Cashfree API
     headers = {
         "Content-Type": "application/json",
         "x-api-version": "2022-01-01",
@@ -77,54 +85,41 @@ def verify_payment(request):
         "x-client-secret": settings.CASHFREE_SECRET_KEY
     }
 
-    # Request to Cashfree to verify the payment status
+    # Check the payment status from Cashfree API
     res = requests.get(f"{settings.CASHFREE_BASE_URL}/orders/{order_id}", headers=headers)
     data = res.json()
 
-    # Log the response data to check its structure
-    print("Cashfree response data:", data)  # Log response for debugging
-
-    # Find the transaction in the database using the order_id
     try:
         transaction = Transaction.objects.get(order_id=order_id)
     except Transaction.DoesNotExist:
-        return render(request, "coin_app/payment_failed.html", {
-            "message": "Transaction not found."
+        return render(request, "coin_app/payment_failed.html", {"message": "Transaction not found."})
+
+    # Prevent re-adding coins on refresh
+    if transaction.status == "SUCCESS":
+        wallet, _ = Wallet.objects.get_or_create(user=transaction.user)
+        return render(request, "coin_app/payment_success.html", {
+            "coins": transaction.coins,
+            "balance": wallet.balance
         })
 
-    # Check if the order is paid
-    if data.get("order_status") == "PAID":  # If the payment was successful
-        # Check if the response has a valid 'payment_session_id' or 'order_id' for tracking
-        payment_session_id = data.get("order_token", None)  # Use order_token if payment_session_id isn't present
-
-        if payment_session_id:
-            transaction.status = "SUCCESS"
-            transaction.payment_id = payment_session_id  # Store the order_token as payment_id
-            transaction.save()
-
-            # Update the user's wallet with the purchased coins
-            wallet, _ = Wallet.objects.get_or_create(user=transaction.user)
-            wallet.balance += transaction.coins  # Add the purchased coins to wallet
-            wallet.save()
-
-            # Render the success page with the number of coins purchased
-            return render(request, "index.html", {
-                "coins": transaction.coins,
-                "balance": wallet.balance
-            })
-        else:
-            # Handle case where no valid payment ID or session ID is found
-            return render(request, "coin_app/payment_failed.html", {
-                "message": "Payment verification failed. No valid payment session ID found."
-            })
-    else:
-        # If the payment failed, update the transaction status and show failure page
-        transaction.status = "FAILED"
+    # If payment was successful
+    if data.get("order_status") == "PAID":
+        transaction.status = "SUCCESS"
+        transaction.payment_id = data.get("order_token", "")
         transaction.save()
-        return render(request, "coin_app/payment_failed.html", {
-            "message": "Payment verification failed. Order status is not PAID."
-        })
-    
-from django.shortcuts import render
-from .models import Wallet
 
+        wallet, _ = Wallet.objects.get_or_create(user=transaction.user)
+        wallet.balance += transaction.coins
+        wallet.save()
+
+        return render(request, "coin_app/payment_success.html", {
+            "coins": transaction.coins,
+            "balance": wallet.balance
+        })
+
+    # Otherwise, mark as failed
+    transaction.status = "FAILED"
+    transaction.save()
+    return render(request, "coin_app/payment_failed.html", {
+        "message": "Payment was not successful."
+    })

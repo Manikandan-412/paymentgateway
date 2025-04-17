@@ -62,15 +62,10 @@
   <div class="container">
     <h1>👛 Your Wallet</h1>
 
-    <div class="wallet-info">
-      <p>User ID: <strong>{{ user_id }}</strong></p>
-      <p>Your current balance:</p>
-      <div class="balance">{{ balance }} coins</div>
-    </div>
+    <h2>Welcome to Your Wallet</h2>
+    <p>Your current balance is: <strong>{{ balance }}</strong> coins</p>
+    <a href="{% url 'buy_coins' %}">Buy More Coins</a>
 
-    <a href="{% url 'buy_coins' %}" class="button">Buy More Coins</a>
-
-   
   </div>
 
 </body>
