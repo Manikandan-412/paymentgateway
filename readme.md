@@ -1,6 +1,3 @@
-Here's a basic README file for your project that you can use for GitHub, explaining how to set up, use, and run your Django app:
-
-```markdown
 # Coishop - Coin Purchase App
 
 A simple Django application for purchasing and managing virtual coins using the Cashfree payment gateway. Users can purchase coins with different price packs, and their balance is updated only after a successful payment.
