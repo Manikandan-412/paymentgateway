@@ -115,16 +115,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Django](https://www.djangoproject.com) for the powerful web framework.
 - Contributors and open-source developers who make web development easier.
 
----
-
 Feel free to fork, modify, and improve this project as needed!
-
-```
-
-### How to Use:
-
-1. Copy the text above into a `README.md` file.
-2. Customize any sections (like the repository URL or Cashfree credentials).
-3. Add this `README.md` file to your GitHub repository.
-
-This should help others (or yourself) get started with the project. Let me know if you need to add any more specific details!
